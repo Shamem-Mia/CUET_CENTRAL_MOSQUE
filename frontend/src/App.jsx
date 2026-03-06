@@ -11,6 +11,8 @@ import { LoaderCircle } from "lucide-react";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import VerifyOTPPage from "./pages/VerifyOTPPage";
+import PrayerTimesPage from "./pages/PrayerTimesPage";
+
 
 const App = () => {
   const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
@@ -41,10 +43,10 @@ const App = () => {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
-
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/verify-otp" element={<VerifyOTPPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/prayer-times" element={<PrayerTimesPage />} />
       </Routes>
     </div>
   );
