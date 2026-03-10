@@ -171,8 +171,8 @@ export const useAuthStore = create((set) => ({
       // Update the notes state
       setNotes((prevNotes) =>
         prevNotes.map((note) =>
-          note._id === noteId ? { ...note, likes: data.data.likes } : note
-        )
+          note._id === noteId ? { ...note, likes: data.data.likes } : note,
+        ),
       );
 
       toast.success("Note liked!");

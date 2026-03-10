@@ -1,3 +1,70 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@keyframes pulse {
+  from {
+    opacity: 0.2;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes move-cloud {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+@keyframes move {
+  50% {
+    box-shadow: 0px 0px 70px 20px #f5e4e4dc, 0 0 70px 40px #ca69b5dc,
+      0px 0px 70px 40px #e772e1dc;
+  }
+}
+
+@keyframes move-sun {
+  50% {
+    box-shadow: 0 0 80px 20px #fef3c7, 0 0 100px 40px #fcd34d,
+      0 0 140px 60px #fbbf24;
+  }
+}
+
+@keyframes twinkle {
+  50% {
+    transform: scale(0.5);
+    opacity: 0.5;
+  }
+}
+
+@keyframes space {
+  from {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: translate(-800px, 400px) scale(0.5);
+    opacity: 0;
+  }
+}
+
+@keyframes rotate-sun {
+  100% {
+    transform: rotateY(360deg);
+  }
+}
+
+@keyframes move-sun-vertical {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
