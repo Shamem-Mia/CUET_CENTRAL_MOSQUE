@@ -6,6 +6,7 @@ import {
   BookCheck,
   Clock,
   History,
+  Book,
 } from "lucide-react";
 
 const AdminDashboard = () => {
@@ -44,6 +45,13 @@ const AdminDashboard = () => {
       icon: History,
       link: "/admin/borrowers",
       color: "bg-green-700",
+    },
+    {
+      title: "Request for Book",
+      description: "See the request of the users to borrow the books",
+      icon: Book,
+      link: "/admin/borrow-requests",
+      color: "bg-blue-700",
     },
   ];
 

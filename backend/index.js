@@ -9,6 +9,7 @@ import bookRouter from "./src/routes/bookRoute.js";
 import borrowRouter from "./src/routes/borrowRoutes.js";
 import eventRouter from "./src/routes/eventRoute.js";
 import prayerSettingRouter from "./src/routes/prayerSettingsRoutes.js";
+import "./src/cron/overdueCheck.js";
 
 import path from "path";
 

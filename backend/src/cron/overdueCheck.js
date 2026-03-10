@@ -2,7 +2,7 @@ import cron from "node-cron";
 import { checkOverdueBooks } from "../controllers/borrowController.js";
 
 // Run every day at midnight
-cron.schedule("0 0 * * *", async () => {
+cron.schedule("* * * * *", async () => {
   console.log("Running overdue books check...");
   try {
     const req = {};

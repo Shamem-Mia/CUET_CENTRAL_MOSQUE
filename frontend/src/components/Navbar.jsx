@@ -439,7 +439,7 @@ const Navbar = () => {
                             to="/admin"
                             icon={<Shield size={18} />}
                             text="Admin Dashboard"
-                            onClick={() => setIsDesktopMenuOpen(false)}
+                            closeSidebar={true}
                           />
                           <NavLink
                             to="/admin/books"
