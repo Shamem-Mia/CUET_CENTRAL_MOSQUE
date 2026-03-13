@@ -2,18 +2,13 @@ import cron from "node-cron";
 import { checkOverdueBooks } from "../controllers/borrowController.js";
 
 // Run every day at midnight
-cron.schedule("* * * * *", async () => {
-  console.log("Running overdue books check...");
+cron.schedule("0 0 * * *", async () => {
   try {
     const req = {};
     const res = {
-      json: (data) => console.log("Overdue check result:", data),
-      status: (code) => ({
-        json: (data) => console.log(`Status ${code}:`, data),
-      }),
+      json: () => {},
+      status: () => ({ json: () => {} }),
     };
     await checkOverdueBooks(req, res);
-  } catch (error) {
-    console.error("Cron job error:", error);
-  }
+  } catch (error) {}
 });
