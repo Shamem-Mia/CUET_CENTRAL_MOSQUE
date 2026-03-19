@@ -12,15 +12,19 @@ import admin from "../middlewares/adminMiddleware.js";
 
 const bookRouter = express.Router();
 
-bookRouter
-  .route("/")
-  .post(authUser, admin, upload.single("coverImage"), createBook)
-  .get(authUser, admin, getBooks);
+// ✅ PUBLIC ROUTES - No authentication needed for viewing books
+bookRouter.get("/", getBooks); // Anyone can view books
+bookRouter.get("/:id", getBookById); // Anyone can view a single book
 
-bookRouter
-  .route("/:id")
-  .get(authUser, admin, getBookById)
-  .put(authUser, admin, upload.single("coverImage"), updateBook)
-  .delete(authUser, admin, deleteBook);
+// ✅ ADMIN ONLY ROUTES - Require admin privileges
+bookRouter.post("/", authUser, admin, upload.single("coverImage"), createBook);
+bookRouter.put(
+  "/:id",
+  authUser,
+  admin,
+  upload.single("coverImage"),
+  updateBook,
+);
+bookRouter.delete("/:id", authUser, admin, deleteBook);
 
 export default bookRouter;

@@ -10,6 +10,8 @@ import borrowRouter from "./src/routes/borrowRoutes.js";
 import eventRouter from "./src/routes/eventRoute.js";
 import prayerSettingRouter from "./src/routes/prayerSettingsRoutes.js";
 import "./src/cron/overdueCheck.js";
+import passport from "passport";
+import "./src/config/passport.js";
 
 import path from "path";
 
@@ -19,6 +21,7 @@ const __dirname = path.resolve();
 
 connectDB();
 
+app.use(passport.initialize());
 app.use(express.json());
 app.use(cookieParser());
 

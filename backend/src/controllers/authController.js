@@ -3,6 +3,7 @@ import { createToken } from "../libs/utils.js";
 import User from "../models/userModel.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import passport from "passport";
 
 export const register = async (req, res) => {
   const { fullName, email, password } = req.body;
@@ -29,7 +30,7 @@ export const register = async (req, res) => {
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Create temporary user data (don't save yet)
+    // Create temporary user data
     const tempUserData = new User({
       fullName,
       email,
@@ -38,27 +39,36 @@ export const register = async (req, res) => {
       verifyOtpExpireAt: otpExpiry,
     });
 
-    // Email options
+    // Email options with CUET CENTRAL MOSQUE branding
     const mailOptions = {
       from: process.env.SMTP_EMAIL,
       to: email,
-      subject: "Welcome to StudyHub - Verify Your Email",
+      subject: "Welcome to CUET CENTRAL MOSQUE - Verify Your Email",
       html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2563eb;">Account Verification</h2>
-        <p>Your one-time verification code is:</p>
-        <div style="background: #f3f4f6; padding: 16px; text-align: center; margin: 16px 0; font-size: 24px; font-weight: bold;">
-          ${OTP}
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+        <div style="background: linear-gradient(to right, #047857, #065f46); padding: 20px; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 24px;">CUET CENTRAL MOSQUE</h1>
+          <p style="color: #d1fae5; margin: 5px 0 0 0;">"And establish prayer for My remembrance"</p>
         </div>
-        <p style="color: #6b7280; font-size: 14px;">
-          This code will expire in 10 minutes. If you didn't request this, please ignore this email.
-        </p>
+        <div style="padding: 30px; background-color: #ffffff;">
+          <h2 style="color: #065f46; margin-top: 0;">Email Verification</h2>
+          <p style="color: #374151; line-height: 1.6;">Assalamu Alaikum ${fullName},</p>
+          <p style="color: #374151; line-height: 1.6;">Thank you for registering with CUET CENTRAL MOSQUE. Please verify your email address using the OTP below:</p>
+          <div style="background: #ecfdf5; padding: 16px; text-align: center; margin: 24px 0; border-radius: 8px; border: 1px solid #a7f3d0;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 4px; color: #065f46;">${OTP}</span>
+          </div>
+          <p style="color: #6b7280; font-size: 14px; margin-bottom: 5px;">This code will expire in 10 minutes.</p>
+          <p style="color: #6b7280; font-size: 14px;">If you didn't request this, please ignore this email.</p>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
+          <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0;">
+            CUET CENTRAL MOSQUE | Chittagong University of Engineering & Technology
+          </p>
+        </div>
       </div>
       `,
     };
 
     await transporter.sendMail(mailOptions);
-
     await tempUserData.save();
 
     res.status(200).json({
@@ -67,6 +77,81 @@ export const register = async (req, res) => {
     });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+export const googleAuth = passport.authenticate("google", {
+  scope: ["profile", "email"],
+});
+
+export const googleAuthCallback = (req, res, next) => {
+  passport.authenticate("google", { session: false }, (err, data) => {
+    if (err) {
+      return res.redirect(
+        `${process.env.CLIENT_URL}/register?error=google-auth-failed`,
+      );
+    }
+
+    if (!data) {
+      return res.redirect(
+        `${process.env.CLIENT_URL}/register?error=google-auth-failed`,
+      );
+    }
+
+    const { user, token } = data;
+
+    // Set cookie
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    // Redirect to frontend with success
+    res.redirect(`${process.env.CLIENT_URL}/oauth-success?token=${token}`);
+  })(req, res, next);
+};
+
+export const handleOAuthSuccess = async (req, res) => {
+  try {
+    const { token } = req.query;
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: "No token provided",
+      });
+    }
+
+    // Verify token and get user data
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findOne({ email: decoded.email });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Google authentication successful",
+      user: {
+        id: user._id,
+        email: user.email,
+        fullName: user.fullName,
+        isAccountVerified: user.isAccountVerified,
+        role: user.role,
+        avatar: user.avatar,
+      },
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -109,7 +194,7 @@ export const verifyAndCreateUser = async (req, res) => {
       });
     }
 
-    // Update the existing user instead of creating new one
+    // Update the existing user
     tempUserData.isAccountVerified = true;
     tempUserData.verifyOtp = undefined;
     tempUserData.verifyOtpExpireAt = undefined;
@@ -138,7 +223,6 @@ export const verifyAndCreateUser = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Verification error:", error);
     res.status(400).json({
       success: false,
       message: error.message || "Verification failed",
@@ -164,7 +248,7 @@ export const login = async (req, res) => {
     }
     const isMatchedPassword = await bcrypt.compare(
       password,
-      existingUser.password
+      existingUser.password,
     );
     if (!isMatchedPassword) {
       return res.status(400).json({
@@ -195,18 +279,28 @@ export const login = async (req, res) => {
   }
 };
 
+// backend/controllers/authController.js
 export const logout = async (req, res) => {
   try {
+    // Clear the cookie
     res.clearCookie("token", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
     });
-    res
-      .status(200)
-      .json({ success: true, message: "Successfully logged out!" });
+
+    // Always return success, even if cookie doesn't exist
+    return res.status(200).json({
+      success: true,
+      message: "Successfully logged out!",
+    });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.error("Logout error:", error);
+    // Still return success to client - we want to clear client state anyway
+    return res.status(200).json({
+      success: true,
+      message: "Logged out",
+    });
   }
 };
 
@@ -214,7 +308,6 @@ export const sendVerifyOTP = async (req, res) => {
   try {
     const { email } = req.body;
 
-    // Basic validation
     if (!email) {
       return res.status(400).json({
         success: false,
@@ -245,27 +338,34 @@ export const sendVerifyOTP = async (req, res) => {
     user.verifyOtpExpireAt = otpExpiry;
     await user.save();
 
-    // Email options
     const mailOptions = {
       from: process.env.SMTP_EMAIL,
       to: user.email,
-      subject: "Account Verification OTP",
-      text: `Your OTP is ${OTP}. Verify your account using this 6 digit OTP`,
+      subject: "CUET CENTRAL MOSQUE - Email Verification OTP",
       html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2563eb;">Account Verification</h2>
-        <p>Your one-time verification code is:</p>
-        <div style="background: #f3f4f6; padding: 16px; text-align: center; margin: 16px 0; font-size: 24px; font-weight: bold;">
-          ${OTP}
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+        <div style="background: linear-gradient(to right, #047857, #065f46); padding: 20px; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 24px;">CUET CENTRAL MOSQUE</h1>
+          <p style="color: #d1fae5; margin: 5px 0 0 0;">"And establish prayer for My remembrance"</p>
         </div>
-        <p style="color: #6b7280; font-size: 14px;">
-          This code will expire in 10 minutes. If you didn't request this, please ignore this email.
-        </p>
+        <div style="padding: 30px; background-color: #ffffff;">
+          <h2 style="color: #065f46; margin-top: 0;">Verify Your Email</h2>
+          <p style="color: #374151; line-height: 1.6;">Assalamu Alaikum ${user.fullName},</p>
+          <p style="color: #374151; line-height: 1.6;">Your verification code is:</p>
+          <div style="background: #ecfdf5; padding: 16px; text-align: center; margin: 24px 0; border-radius: 8px; border: 1px solid #a7f3d0;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 4px; color: #065f46;">${OTP}</span>
+          </div>
+          <p style="color: #6b7280; font-size: 14px; margin-bottom: 5px;">This code will expire in 10 minutes.</p>
+          <p style="color: #6b7280; font-size: 14px;">If you didn't request this, please ignore this email.</p>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
+          <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0;">
+            CUET CENTRAL MOSQUE | Chittagong University of Engineering & Technology
+          </p>
+        </div>
       </div>
       `,
     };
 
-    // Send email with error handling
     try {
       await transporter.sendMail(mailOptions);
       return res.status(200).json({
@@ -273,14 +373,12 @@ export const sendVerifyOTP = async (req, res) => {
         message: "Verification OTP sent to your email",
       });
     } catch (emailError) {
-      console.error("Email sending failed:", emailError);
       return res.status(500).json({
         success: false,
         message: "Failed to send OTP email",
       });
     }
   } catch (error) {
-    console.error("Error in sendVerifyOTP:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -299,32 +397,37 @@ export const resendVerification = async (req, res) => {
       });
     }
 
-    // Generate new OTP
     const OTP = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
+    const otpExpiry = Date.now() + 10 * 60 * 1000;
 
-    // Update the tempUserData with new OTP
     const updatedTempUserData = {
       ...tempUserData,
       otp: OTP,
       otpExpiry,
     };
 
-    // Email with new OTP
     const mailOptions = {
       from: process.env.SMTP_EMAIL,
       to: email,
-      subject: "New Verification Code",
+      subject: "CUET CENTRAL MOSQUE - New Verification Code",
       html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2563eb;">New Verification Code</h2>
-        <p>Your new verification code is:</p>
-        <div style="background: #f3f4f6; padding: 16px; text-align: center; margin: 16px 0; font-size: 24px; font-weight: bold;">
-          ${OTP}
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+        <div style="background: linear-gradient(to right, #047857, #065f46); padding: 20px; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 24px;">CUET CENTRAL MOSQUE</h1>
+          <p style="color: #d1fae5; margin: 5px 0 0 0;">"And establish prayer for My remembrance"</p>
         </div>
-        <p style="color: #6b7280; font-size: 14px;">
-          This code will expire in 10 minutes.
-        </p>
+        <div style="padding: 30px; background-color: #ffffff;">
+          <h2 style="color: #065f46; margin-top: 0;">New Verification Code</h2>
+          <p style="color: #374151; line-height: 1.6;">Your new verification code is:</p>
+          <div style="background: #ecfdf5; padding: 16px; text-align: center; margin: 24px 0; border-radius: 8px; border: 1px solid #a7f3d0;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 4px; color: #065f46;">${OTP}</span>
+          </div>
+          <p style="color: #6b7280; font-size: 14px; margin-bottom: 5px;">This code will expire in 10 minutes.</p>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
+          <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0;">
+            CUET CENTRAL MOSQUE | Chittagong University of Engineering & Technology
+          </p>
+        </div>
       </div>
       `,
     };
@@ -338,7 +441,6 @@ export const resendVerification = async (req, res) => {
       updatedTempUserData,
     });
   } catch (error) {
-    console.error("Error in resendVerification:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -350,7 +452,6 @@ export const isAuthenticated = async (req, res) => {
   try {
     res.status(200).json({ success: true, message: "User is authenticated!" });
   } catch (error) {
-    console.error("Error in isAuthenticated:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -378,33 +479,40 @@ export const sendResetOtp = async (req, res) => {
     }
 
     const OTP = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
+    const otpExpiry = Date.now() + 10 * 60 * 1000;
 
     user.resetOtp = OTP;
     user.resetOtpExpireAt = otpExpiry;
     await user.save();
 
-    // Email options
     const mailOptions = {
       from: process.env.SMTP_EMAIL,
       to: user.email,
-      subject: "Password reset OTP",
-      text: `Your OTP is ${OTP}. Reset your password using this 6 digit OTP`,
+      subject: "CUET CENTRAL MOSQUE - Password Reset OTP",
       html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2563eb;">Reset Password</h2>
-        <p>Your one-time verification code is:</p>
-        <div style="background: #f3f4f6; padding: 16px; text-align: center; margin: 16px 0; font-size: 24px; font-weight: bold;">
-          ${OTP}
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+        <div style="background: linear-gradient(to right, #047857, #065f46); padding: 20px; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 24px;">CUET CENTRAL MOSQUE</h1>
+          <p style="color: #d1fae5; margin: 5px 0 0 0;">"And establish prayer for My remembrance"</p>
         </div>
-        <p style="color: #6b7280; font-size: 14px;">
-          This code will expire in 10 minutes. If you didn't request this, please ignore this email.
-        </p>
+        <div style="padding: 30px; background-color: #ffffff;">
+          <h2 style="color: #065f46; margin-top: 0;">Reset Your Password</h2>
+          <p style="color: #374151; line-height: 1.6;">Assalamu Alaikum ${user.fullName},</p>
+          <p style="color: #374151; line-height: 1.6;">Use the OTP below to reset your password:</p>
+          <div style="background: #ecfdf5; padding: 16px; text-align: center; margin: 24px 0; border-radius: 8px; border: 1px solid #a7f3d0;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 4px; color: #065f46;">${OTP}</span>
+          </div>
+          <p style="color: #6b7280; font-size: 14px; margin-bottom: 5px;">This code will expire in 10 minutes.</p>
+          <p style="color: #6b7280; font-size: 14px;">If you didn't request this, please ignore this email.</p>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
+          <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0;">
+            CUET CENTRAL MOSQUE | Chittagong University of Engineering & Technology
+          </p>
+        </div>
       </div>
       `,
     };
 
-    // Send email
     try {
       await transporter.sendMail(mailOptions);
       return res.status(200).json({
@@ -412,14 +520,12 @@ export const sendResetOtp = async (req, res) => {
         message: "OTP sent to your email to reset password",
       });
     } catch (error) {
-      console.error("Email sending failed in sendResetOtp:", error);
       return res.status(500).json({
         success: false,
         message: "Failed to send OTP email",
       });
     }
   } catch (error) {
-    console.error("Error in sendVerifyOTP:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -429,8 +535,6 @@ export const sendResetOtp = async (req, res) => {
 
 export const verifyResetOtp = async (req, res) => {
   const { email, otp } = req.body;
-  console.log(req.body);
-  console.log(otp);
 
   if (!email || !otp) {
     return res.status(400).json({
@@ -505,7 +609,6 @@ export const resetPassword = async (req, res) => {
       message: "Password updated successfully!",
     });
   } catch (error) {
-    console.error("Error in resetPassword:", error);
     return res.status(500).json({
       success: false,
       message: "Invalid or expired token",
