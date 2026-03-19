@@ -2,54 +2,70 @@ import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { axiosInstance } from "../context/axiosInstance.js";
 import { useAuthStore } from "../stores/useAuthStore.js";
-// import toast from "react-hot-toast";
+import toast from "react-hot-toast";
 
 const VerifyEmailPage = () => {
-  const { loading, error, message, verifyAndCreate } = useAuthStore();
+  // Destructure message from the store
+  const {
+    loading,
+    error: storeError,
+    message,
+    verifyAndCreate,
+  } = useAuthStore();
   const [otp, setOtp] = useState("");
   const [resendLoading, setResendLoading] = useState(false);
+  const [localError, setLocalError] = useState("");
   const location = useLocation();
   const navigate = useNavigate();
 
   const { email } = location.state || {};
 
+  // Redirect if no email in state
+  if (!email) {
+    navigate("/register");
+    return null;
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLocalError("");
+
     if (!otp || otp.length !== 6) {
-      setError("Please enter a valid 6-digit OTP");
+      setLocalError("Please enter a valid 6-digit OTP");
       return;
     }
 
-    verifyAndCreate(email, otp, navigate);
+    await verifyAndCreate(email, otp, navigate);
   };
 
   const handleResendOtp = async () => {
-    if (!email || !location.state?.tempUserData) {
-      setError("Session expired. Please register again.");
+    if (!email) {
+      setLocalError("Session expired. Please register again.");
       return;
     }
 
     setResendLoading(true);
-    setError("");
+    setLocalError("");
 
     try {
       const response = await axiosInstance.post("/auth/resend-verification", {
         email,
-        tempUserData: location.state.tempUserData,
       });
 
-      // Update the OTP input field with the new OTP
-      setOtp("");
-
-      if (response.data.updatedTempUserData) {
-        location.state.tempUserData = response.data.updatedTempUserData;
-      }
+      toast.success("New verification code sent to your email!");
+      setOtp(""); // Clear OTP field
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to resend OTP");
+      const errorMessage =
+        err.response?.data?.message || "Failed to resend OTP";
+      setLocalError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setResendLoading(false);
     }
   };
+
+  // Display either local error or store error
+  const displayError = localError || storeError;
 
   return (
     <div className="min-h-screen bg-emerald-50 flex items-center justify-center p-4">
@@ -61,9 +77,15 @@ const VerifyEmailPage = () => {
           "And say: 'My Lord, increase me in knowledge'"
         </p>
 
-        {error && (
+        {displayError && (
           <div className="mb-4 p-3 bg-red-100 text-red-700 rounded border border-red-200">
-            {error}
+            {displayError}
+          </div>
+        )}
+
+        {message && (
+          <div className="mb-4 p-3 bg-green-100 text-green-700 rounded border border-green-200">
+            {message}
           </div>
         )}
 
@@ -80,7 +102,10 @@ const VerifyEmailPage = () => {
             <input
               type="text"
               value={otp}
-              onChange={(e) => setOtp(e.target.value)}
+              onChange={(e) => {
+                setOtp(e.target.value);
+                if (localError) setLocalError("");
+              }}
               className="w-full px-4 py-2 border border-emerald-300 rounded-md shadow-sm focus:ring-emerald-600 focus:border-emerald-600 hover:border-emerald-400 transition duration-200"
               placeholder="Enter 6-digit code"
               maxLength={6}
@@ -107,7 +132,7 @@ const VerifyEmailPage = () => {
           <button
             onClick={handleResendOtp}
             disabled={resendLoading}
-            className="text-emerald-700 hover:text-emerald-800 underline font-medium transition duration-200"
+            className="text-emerald-700 hover:text-emerald-800 underline font-medium transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {resendLoading ? "Sending..." : "Resend OTP"}
           </button>

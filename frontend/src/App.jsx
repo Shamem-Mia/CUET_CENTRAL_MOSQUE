@@ -32,6 +32,7 @@ import PrayerSettings from "./pages/admin/PrayerSettings";
 import AboutPage from "./pages/AboutPage";
 import DeveloperInfo from "./pages/DeveloperInfo";
 import BorrowersList from "./pages/admin/BorrowersList";
+import OAuthSuccess from "./pages/OAuthSuccess";
 
 const App = () => {
   const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
@@ -187,6 +188,9 @@ const App = () => {
 
         {/* Catch all route - 404 */}
         <Route path="*" element={<Navigate to="/" replace />} />
+
+        {/* google login */}
+        <Route path="/oauth-success" element={<OAuthSuccess />} />
       </Routes>
     </div>
   );

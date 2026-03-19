@@ -31,26 +31,32 @@ export const useAuthStore = create((set) => ({
         password: formData.password,
       });
 
+      // Show success message
+      toast.success(
+        response.data.message ||
+          "Registration initiated! Please verify your email.",
+      );
+
+      // Navigate to verification page
       navigate("/verify-email", {
         state: {
           email: formData.email,
         },
       });
 
-      toast(response.data.message || "Something is wrong");
-
       return response.data || null;
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Registration failed";
+      set({ error: errorMessage }); // Set the error in store
       toast.error(errorMessage);
       return null;
     } finally {
-      set({ loading: false, error: "" });
+      set({ loading: false });
     }
   },
 
   verifyAndCreate: async (email, otp, navigate) => {
-    set({ loading: true, error: "" });
+    set({ loading: true, error: "", message: "" });
 
     try {
       const response = await axiosInstance.post("/auth/verify-and-create", {
@@ -66,8 +72,10 @@ export const useAuthStore = create((set) => ({
       navigate("/");
     } catch (error) {
       set({
-        error: err.response?.data?.message || "Verification failed",
+        error: error.response?.data?.message || "Verification failed",
+        message: "",
       });
+      toast.error(error.response?.data?.message || "Verification failed");
     } finally {
       set({ loading: false });
     }
@@ -81,13 +89,32 @@ export const useAuthStore = create((set) => ({
         return;
       }
 
-      await axiosInstance.post("/auth/logout");
+      // Clear local state
       set({ authUser: null });
-      toast.success("Logged out successfully");
-      navigate("/login");
+
+      // Flag to track if we've shown a toast
+      let toastShown = false;
+
+      try {
+        // Try to logout from backend
+        await axiosInstance.post("/auth/logout");
+
+        // Show success only if no error
+        toast.success("Logged out successfully");
+        toastShown = true;
+      } catch (error) {
+        console.log("Backend logout error:", error);
+
+        // Show warning only if we haven't shown any toast
+        if (!toastShown) {
+          toast.success("Logged out successfully");
+        }
+      }
     } catch (error) {
-      console.log("Error in logout store!", error);
-      toast.error(error.response?.data?.message || "Logout failed");
+      console.log("Unexpected error:", error);
+      toast.error("Something went wrong");
+    } finally {
+      navigate("/login");
     }
   },
 
