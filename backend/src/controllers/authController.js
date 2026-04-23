@@ -84,32 +84,33 @@ export const googleAuth = passport.authenticate("google", {
   scope: ["profile", "email"],
 });
 
+// In your authController.js, ensure googleAuthCallback has dynamic URLs
 export const googleAuthCallback = (req, res, next) => {
-  passport.authenticate("google", { session: false }, (err, data) => {
-    if (err) {
+  passport.authenticate("google", { session: false }, (err, data, info) => {
+    if (err || !data) {
+      console.error("Google auth error:", err || info);
+      // Redirect to production frontend
       return res.redirect(
-        `${process.env.CLIENT_URL}/register?error=google-auth-failed`,
+        `https://cuet-central-mosque.onrender.com/login?error=google_auth_failed`,
       );
     }
 
-    if (!data) {
-      return res.redirect(
-        `${process.env.CLIENT_URL}/register?error=google-auth-failed`,
+    try {
+      const { user, token } = data;
+
+      // Redirect to production frontend with token
+      const redirectURL = `https://cuet-central-mosque.onrender.com/oauth-success?token=${token}&user=${encodeURIComponent(
+        JSON.stringify(user),
+      )}`;
+
+      console.log("Redirecting to:", redirectURL);
+      res.redirect(redirectURL);
+    } catch (error) {
+      console.error("Callback processing error:", error);
+      res.redirect(
+        `https://cuet-central-mosque.onrender.com/login?error=processing_failed`,
       );
     }
-
-    const { user, token } = data;
-
-    // Set cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    // Redirect to frontend with success
-    res.redirect(`${process.env.CLIENT_URL}/oauth-success?token=${token}`);
   })(req, res, next);
 };
 

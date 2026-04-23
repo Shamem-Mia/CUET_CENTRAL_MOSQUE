@@ -4,16 +4,13 @@ import User from "../models/userModel.js";
 import { createToken } from "../libs/utils.js";
 import bcrypt from "bcryptjs";
 
-// Configure Google Strategy
+// Simple production-only config
 passport.use(
   new GoogleStrategy(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL:
-        process.env.NODE_ENV === "production"
-          ? "https://cuet-central-mosque.onrender.com/auth/google/callback"
-          : "http://localhost:4000/api/auth/google/callback",
+      callbackURL: process.env.GOOGLE_CALLBACK_URL,
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
@@ -24,7 +21,6 @@ passport.use(
 
         if (!user) {
           // Create new user with Google data
-          // Generate a random password for Google users
           const randomPassword =
             Math.random().toString(36).slice(-12) +
             Math.random().toString(36).slice(-12);
@@ -33,8 +29,8 @@ passport.use(
           user = await User.create({
             fullName: profile.displayName,
             email: profile.emails[0].value,
-            password: hashedPassword, // Random password (user will never use it)
-            isAccountVerified: true, // Auto-verified for Google accounts
+            password: hashedPassword,
+            isAccountVerified: true,
             googleId: profile.id,
             role: "user",
           });

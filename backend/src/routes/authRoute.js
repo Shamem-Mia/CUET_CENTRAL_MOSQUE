@@ -30,18 +30,22 @@ router.post("/send-reset-otp", sendResetOtp);
 router.post("/verify-reset-otp", verifyResetOtp);
 router.post("/reset-password", resetPassword);
 
-// Google OAuth routes - USE ROUTER, NOT APP
+// Google OAuth routes
 router.get("/google", googleAuth);
 router.get("/google/callback", googleAuthCallback);
 router.get("/oauth-success", handleOAuthSuccess);
 
-// In your authRoute.js
+// Debug route for production
 router.get("/debug-oauth", (req, res) => {
   res.json({
-    googleCallbackURL: "http://localhost:4000/api/auth/google/callback",
-    clientURL: process.env.CLIENT_URL,
-    redirectURI: `${process.env.CLIENT_URL}/oauth-success`,
-    expectedGoogleRedirect: "http://localhost:4000/api/auth/google/callback",
+    environment: "production",
+    googleCallbackURL: process.env.GOOGLE_CALLBACK_URL,
+    clientURL:
+      process.env.CLIENT_URL || "https://cuet-central-mosque.onrender.com",
+    redirectURI: `${process.env.CLIENT_URL || "https://cuet-central-mosque.onrender.com"}/oauth-success`,
+    expectedGoogleRedirect: process.env.GOOGLE_CALLBACK_URL,
+    googleClientIdPrefix:
+      process.env.GOOGLE_CLIENT_ID?.substring(0, 20) + "...",
   });
 });
 
