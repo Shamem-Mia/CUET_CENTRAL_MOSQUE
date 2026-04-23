@@ -195,35 +195,41 @@ const BookDetails = () => {
 
             {/* Book Info */}
             <div className="flex-1">
-              <h1 className="text-3xl md:text-4xl font-bold mb-2">
+              <h1 className="text-3xl md:text-4xl font-bold mb-2 break-words">
                 {currentBook.title}
               </h1>
-              <p className="text-xl text-emerald-100 mb-4">
+              <p className="text-xl text-emerald-100 mb-4 break-words">
                 by {currentBook.author}
               </p>
 
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
                 <div>
                   <p className="text-emerald-200 text-sm">Category</p>
-                  <p className="font-medium">{currentBook.category}</p>
+                  <p className="font-medium break-words">
+                    {currentBook.category}
+                  </p>
                 </div>
                 <div>
                   <p className="text-emerald-200 text-sm">Language</p>
-                  <p className="font-medium">{currentBook.language}</p>
+                  <p className="font-medium break-words">
+                    {currentBook.language}
+                  </p>
                 </div>
                 <div>
                   <p className="text-emerald-200 text-sm">ISBN</p>
-                  <p className="font-medium">{currentBook.isbn || "N/A"}</p>
+                  <p className="font-medium break-words">
+                    {currentBook.isbn || "N/A"}
+                  </p>
                 </div>
                 <div>
                   <p className="text-emerald-200 text-sm">Publisher</p>
-                  <p className="font-medium">
+                  <p className="font-medium break-words">
                     {currentBook.publisher || "N/A"}
                   </p>
                 </div>
                 <div>
                   <p className="text-emerald-200 text-sm">Year</p>
-                  <p className="font-medium">
+                  <p className="font-medium break-words">
                     {currentBook.publicationYear || "N/A"}
                   </p>
                 </div>
@@ -308,7 +314,7 @@ const BookDetails = () => {
                     {previousRequests.slice(0, 3).map((req) => (
                       <div
                         key={req._id}
-                        className="flex items-center gap-3 text-sm"
+                        className="flex items-center gap-3 text-sm flex-wrap"
                       >
                         {getStatusBadge(req.status)}
                         <span className="text-emerald-200">
@@ -350,7 +356,10 @@ const BookDetails = () => {
             <form onSubmit={handleRequestSubmit}>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Book: <span className="font-normal">{currentBook.title}</span>
+                  Book:{" "}
+                  <span className="font-normal break-words">
+                    {currentBook.title}
+                  </span>
                 </label>
               </div>
 
@@ -359,18 +368,20 @@ const BookDetails = () => {
                   Your Information
                 </label>
                 <div className="bg-gray-50 p-3 rounded-lg space-y-2">
-                  <p className="text-sm flex items-center gap-2">
-                    <User className="w-4 h-4 text-gray-500" />
-                    {user?.fullName || user?.name}
+                  <p className="text-sm flex items-center gap-2 break-words">
+                    <User className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                    <span className="break-words">
+                      {user?.fullName || user?.name}
+                    </span>
                   </p>
-                  <p className="text-sm flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-gray-500" />
-                    {user?.email}
+                  <p className="text-sm flex items-center gap-2 break-words">
+                    <Mail className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                    <span className="break-words">{user?.email}</span>
                   </p>
                   {user?.phone && (
-                    <p className="text-sm flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-gray-500" />
-                      {user.phone}
+                    <p className="text-sm flex items-center gap-2 break-words">
+                      <Phone className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                      <span className="break-words">{user.phone}</span>
                     </p>
                   )}
                 </div>
@@ -416,11 +427,11 @@ const BookDetails = () => {
         </div>
       )}
 
-      {/* Description Section */}
+      {/* Description Section - Fixed text wrapping */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Description</h2>
-          <p className="text-gray-700 leading-relaxed">
+          <p className="text-gray-700 leading-relaxed break-words whitespace-normal">
             {currentBook.description || "No description available."}
           </p>
         </div>
@@ -431,30 +442,30 @@ const BookDetails = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Building2 className="w-5 h-5" />
-              Owner Hall Details
+              <Building2 className="w-5 h-5 flex-shrink-0" />
+              <span>Owner Hall Details</span>
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {currentBook.ownerHall.hallName && (
                 <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-emerald-600" />
-                  <span className="text-gray-700">
+                  <MapPin className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span className="text-gray-700 break-words">
                     Hall: {currentBook.ownerHall.hallName}
                   </span>
                 </div>
               )}
               {currentBook.ownerHall.hallQuantity && (
                 <div className="flex items-center gap-2">
-                  <Hash className="w-4 h-4 text-emerald-600" />
-                  <span className="text-gray-700">
+                  <Hash className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span className="text-gray-700 break-words">
                     Quantity: {currentBook.ownerHall.hallQuantity}
                   </span>
                 </div>
               )}
               {currentBook.ownerHall.libraryLocation && (
                 <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-emerald-600" />
-                  <span className="text-gray-700">
+                  <MapPin className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span className="text-gray-700 break-words">
                     Location: {currentBook.ownerHall.libraryLocation}
                   </span>
                 </div>
